@@ -13,7 +13,7 @@ st.set_page_config(
     layout="centered",
 )
 
-# ── Load / train model ────────────────────────────────────────────────────────
+
 @st.cache_resource(show_spinner="Memuat model prediksi...")
 def get_model():
     from train import load_or_train
@@ -21,7 +21,7 @@ def get_model():
 
 model, meta = get_model()
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+
 def build_features(sleep_hours, sleep_start_hour, irregularity, nap_min, cum_gpa, gender, firstgen):
     total_sleep_min  = sleep_hours * 60
     sleep_start_min  = sleep_start_hour * 60
@@ -46,7 +46,7 @@ def generate_recommendations(sleep_hours, sleep_start_hour, irregularity, nap_mi
         deficit = 7 - sleep_hours
         recs.append(("🛌 Durasi Tidur", 
             f"Kamu tidur rata-rata {sleep_hours:.1f} jam/malam, kurang dari rekomendasi minimum 7 jam. "
-            f"Tambah {deficit:.1f} jam tidur bisa signifikan memengaruhi konsolidasi memori dan performa akademik."))
+            f"Tambah {deficit:.1f} jam tidur bisa signifikan memengaruhi memori dan performa akademik."))
 
     if sleep_hours > 9:
         recs.append(("🛌 Durasi Tidur",
@@ -61,7 +61,7 @@ def generate_recommendations(sleep_hours, sleep_start_hour, irregularity, nap_mi
             "Geser waktu tidur 30 menit lebih awal setiap minggu lebih efektif daripada langsung berubah drastis."))
     elif sleep_start_hour >= 24 or (sleep_start_hour >= 0 and sleep_start_hour < 2):
         recs.append(("⏰ Waktu Tidur",
-            "Tidur di atas jam 00:00 berkorelasi dengan peningkatan fragmentasi tidur dan penurunan slow-wave sleep. "
+            "Tidur di atas jam 00:00 berkorelasi dengan penurunan kualitas tidur dan penurunan slow-wave sleep. "
             "Target idealnya tidur sebelum jam 23:30."))
 
     if irregularity >= 3.5:
@@ -93,7 +93,7 @@ def generate_recommendations(sleep_hours, sleep_start_hour, irregularity, nap_mi
 
     return recs
 
-# ── UI ────────────────────────────────────────────────────────────────────────
+
 st.markdown("## 🌙 Sleep & GPA Predictor")
 st.markdown(
     "Prediksi IPK semester berdasarkan pola tidur. "
