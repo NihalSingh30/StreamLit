@@ -29,7 +29,7 @@ FEATURES = [
 
 
 def load_data():
-    # Pakai hasil EDA (sudah di-clean dan di-cap outlier IQR)
+    # Pakai hasil EDA
     # Fallback ke raw CSV kalau clean belum ada
     if os.path.exists(CLEAN_PATH):
         df = pd.read_csv(CLEAN_PATH)
