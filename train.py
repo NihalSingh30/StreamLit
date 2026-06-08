@@ -10,9 +10,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 
-DATA_PATH  = os.path.join(os.path.dirname(__file__), 'data', 'cmu-sleep.csv')
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'model', 'gpa_model.pkl')
-META_PATH  = os.path.join(os.path.dirname(__file__), 'model', 'meta.pkl')
+BASE_DIR    = os.path.dirname(__file__)
+CLEAN_PATH  = os.path.join(BASE_DIR, 'data', 'cmu-sleep-clean.csv')
+RAW_PATH    = os.path.join(BASE_DIR, 'data', 'cmu-sleep.csv')
+MODEL_PATH  = os.path.join(BASE_DIR, 'model', 'gpa_model.pkl')
+META_PATH   = os.path.join(BASE_DIR, 'model', 'meta.pkl')
 
 FEATURES = [
     'TotalSleepTime',
@@ -25,19 +27,48 @@ FEATURES = [
     'demo_firstgen',
 ]
 
+
+def load_data():
+    # Pakai hasil EDA (sudah di-clean dan di-cap outlier IQR)
+    # Fallback ke raw CSV kalau clean belum ada
+    if os.path.exists(CLEAN_PATH):
+        df = pd.read_csv(CLEAN_PATH)
+        source = 'cmu-sleep-clean.csv'
+    else:
+        df = pd.read_csv(RAW_PATH)
+        df.columns = df.columns.str.strip().str.lstrip('\ufeff')
+        df = df.replace(r'^\s*$', np.nan, regex=True)
+
+        numeric_cols = FEATURES + ['term_gpa']
+        for c in numeric_cols:
+            df[c] = pd.to_numeric(df[c], errors='coerce')
+
+        # Impute modus
+        for col in ['demo_gender', 'demo_firstgen', 'demo_race']:
+            if col in df.columns:
+                df[col] = df[col].fillna(df[col].mode()[0])
+
+        # Capping IQR sleep
+        cap_features = ['TotalSleepTime', 'midpoint_sleep', 'bedtime_mssd', 'daytime_sleep']
+        for col in cap_features:
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            df[col] = df[col].clip(lower=Q1 - 1.5 * IQR, upper=Q3 + 1.5 * IQR)
+
+        source = 'cmu-sleep.csv (raw, fallback)'
+
+    df = df.dropna(subset=['term_gpa'] + FEATURES)
+    print(f"Data source: {source}")
+    print(f"Rows loaded: {len(df)}")
+    return df
+
+
 def train_and_save():
     from sklearn.model_selection import cross_val_score, train_test_split
     from sklearn.metrics import mean_absolute_error, r2_score
 
-    df = pd.read_csv(DATA_PATH)
-    df.columns = df.columns.str.strip().str.lstrip('\ufeff')
-    df = df.replace(r'^\s*$', np.nan, regex=True)
-
-    numeric_cols = FEATURES + ['term_gpa']
-    for c in numeric_cols:
-        df[c] = pd.to_numeric(df[c], errors='coerce')
-
-    df = df.dropna(subset=['term_gpa', 'TotalSleepTime', 'midpoint_sleep', 'cum_gpa'])
+    df = load_data()
 
     X = df[FEATURES]
     y = df['term_gpa']
